@@ -24,7 +24,7 @@ pub mod pallet {
 	use frame_support::dispatch::Vec;
 
 	#[pallet::pallet]
-	#[pallet::generate_store(pub(super) trait Store)]
+	// #[pallet::generate_store(pub(super) trait Store)]
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
@@ -50,6 +50,12 @@ pub mod pallet {
 		pub description: Vec<u8>
 	}
 
+	#[derive(Encode, Decode, Clone, PartialEq, Default, TypeInfo)]
+	pub struct UserData {
+		pub user_id: i64,
+		pub user_name: Vec<u8>
+	}
+
 	// The pallet's runtime storage items.
 	// https://docs.substrate.io/main-docs/build/runtime-storage/
 	#[pallet::storage]
@@ -57,6 +63,12 @@ pub mod pallet {
 	// Learn more about declaring storage items:
 	// https://docs.substrate.io/main-docs/build/runtime-storage/#declaring-storage-items
 	pub type AccountTeamData<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, TeamsData, OptionQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn user_data)]
+	// Learn more about declaring storage items:
+	// https://docs.substrate.io/main-docs/build/runtime-storage/#declaring-storage-items
+	pub type AccountUserData<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, UserData, OptionQuery>;
 
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/main-docs/build/events-errors/
@@ -66,6 +78,7 @@ pub mod pallet {
 		/// Event documentation should end with an array that provides descriptive names for event
 		/// parameters. [something, who]
 		TeamsDataStored { team: T::AccountId },
+		UserDataStored { user: T::AccountId },
 	}
 
 	// Errors inform users that something went wrong.
@@ -101,6 +114,26 @@ pub mod pallet {
 
 			// Emit an event.
 			Self::deposit_event(Event::<T>::TeamsDataStored { team: who } );
+			// Return a successful DispatchResultWithPostInfo
+			Ok(())
+		}
+
+		#[pallet::call_index(1)]
+		#[pallet::weight(10_000 + T::DbWeight::get().writes(1).ref_time())]
+		pub fn add_user_data(origin: OriginFor<T>, 
+		user_id: i64, user_name: Vec<u8>) -> DispatchResult {
+			// Check that the extrinsic was signed and get the signer.
+			// This function will return an error if the extrinsic is not signed.
+			// https://docs.substrate.io/main-docs/build/origins/
+			let who = ensure_signed(origin)?;
+
+			// Update storage.
+			//<Something<T>>::put(something);
+			let new_user = UserData { user_id, user_name };
+			<AccountUserData<T>>::insert(&who, new_user);
+
+			// Emit an event.
+			Self::deposit_event(Event::<T>::UserDataStored { user: who } );
 			// Return a successful DispatchResultWithPostInfo
 			Ok(())
 		}
